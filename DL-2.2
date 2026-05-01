@@ -1,0 +1,81 @@
+!pip install --upgrade tensorflow
+!pip install tensorflow-directml-plugin
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+import matplotlib.pyplot as plt
+
+
+# Load dataset (top 10,000 most frequent words)
+num_words = 10000
+
+(x_train, y_train), (x_test, y_test) = keras.datasets.imdb.load_data(num_words=num_words)
+
+print("Training samples:", len(x_train))
+print("Test samples:", len(x_test))
+
+
+#preprosses data
+max_length = 200  # maximum review length
+
+x_train = keras.preprocessing.sequence.pad_sequences(x_train, maxlen=max_length)
+x_test = keras.preprocessing.sequence.pad_sequences(x_test, maxlen=max_length)
+
+print("Shape after padding:", x_train.shape)
+
+
+#Build Deep Neural Network Model
+model = keras.Sequential([
+    layers.Embedding(input_dim=num_words, output_dim=128),
+
+    layers.GlobalAveragePooling1D(),
+
+    layers.Dense(128, activation='relu'),
+    layers.Dropout(0.5),
+
+    layers.Dense(64, activation='relu'),
+
+    layers.Dense(1, activation='sigmoid')
+])
+
+
+model.compile(
+    optimizer='adam',
+    loss='binary_crossentropy',
+    metrics=['accuracy']
+)
+
+# Train the Model
+history = model.fit(
+    x_train,
+    y_train,
+    epochs=10,
+    batch_size=512,
+    validation_split=0.2
+)
+
+# Evaluate the Model
+loss, accuracy = model.evaluate(x_test, y_test)
+print("Test Accuracy:", accuracy)
+
+
+# Accuracy plot
+plt.plot(history.history['accuracy'], label='Train Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.legend()
+plt.title("Accuracy")
+plt.show()
+
+# Loss plot
+plt.plot(history.history['loss'], label='Train Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.legend()
+plt.title("Loss")
+plt.show()
+
+
+predictions = model.predict(x_test[:5])
+
+for i, pred in enumerate(predictions):
+    print(f"Review {i+1} Prediction:", "Positive" if pred > 0.5 else "Negative")
