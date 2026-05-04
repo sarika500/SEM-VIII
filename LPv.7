@@ -1,0 +1,63 @@
+#write cuda program for matrix multiplication using cuda c.
+
+# ================== PyTorch GPU Matrix Multiplication ==================
+import torch
+
+# Select GPU if available
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+# IMPORTANT: use float32 (fixes your error)
+A = torch.tensor([[1, 2],
+                  [3, 4]], dtype=torch.float32, device=device)
+
+B = torch.tensor([[5, 6],
+                  [7, 8]], dtype=torch.float32, device=device)
+
+C = torch.matmul(A, B)
+
+print("PyTorch Result:")
+print(C)
+
+
+# ================== Numba CUDA Matrix Multiplication ==================
+from numba import cuda
+import numpy as np
+
+@cuda.jit
+def matmul(A, B, C):
+    row = cuda.threadIdx.y
+    col = cuda.threadIdx.x
+
+    if row < C.shape[0] and col < C.shape[1]:
+        temp = 0
+        for k in range(A.shape[1]):
+            temp += A[row, k] * B[k, col]
+
+        C[row, col] = temp
+
+
+# Input matrices (float32 required for GPU)
+A_np = np.array([[1, 2],
+                 [3, 4]], dtype=np.float32)
+
+B_np = np.array([[5, 6],
+                 [7, 8]], dtype=np.float32)
+
+C_np = np.zeros((2, 2), dtype=np.float32)
+
+# Copy to GPU
+d_A = cuda.to_device(A_np)
+d_B = cuda.to_device(B_np)
+d_C = cuda.device_array((2, 2), dtype=np.float32)
+
+# Launch kernel (1 block, 2x2 threads)
+matmul[(1, 1), (2, 2)](d_A, d_B, d_C)
+
+# Wait for GPU to finish
+cuda.synchronize()
+
+# Copy result back
+C_np = d_C.copy_to_host()
+
+print("\nNumba CUDA Result:")
+print(C_np)
