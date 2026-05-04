@@ -1,0 +1,35 @@
+# write a cuda program for addition of two large vectors using cuda C.
+
+from numba import cuda
+import numpy as np
+
+@cuda.jit
+def add(a, b, c):
+    i = cuda.threadIdx.x
+    c[i] = a[i] + b[i]
+
+a = np.array([1,2,3])
+b = np.array([4,5,6])
+c = np.zeros(3)
+
+d_a = cuda.to_device(a)
+d_b = cuda.to_device(b)
+d_c = cuda.device_array(3)
+
+add[1,3](d_a, d_b, d_c)
+
+c = d_c.copy_to_host()
+print(c)
+
+
+
+import torch
+
+# create vectors on GPU
+a = torch.tensor([1, 2, 3], device="cuda")
+b = torch.tensor([4, 5, 6], device="cuda")
+
+# addition (done on GPU automatically)
+c = a + b
+
+print(c)
